@@ -1,0 +1,6 @@
+__pycache__
+/accless_tg_scraper.egg-info
+/build
+*.html
+reinstall.sh
+install-e-mode.sh
