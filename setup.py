@@ -9,6 +9,7 @@ setup(
     description='Scrap telegram web WITHOUT account or API token',
     packages = ['accless_tg_scraper'],
     install_requires=[
-        'aiohttp'
+        'aiohttp',
+        'bs4'
     ]
 )
