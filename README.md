@@ -2,7 +2,7 @@
 Scrap posts from telegram web WITHOUT account or API token
 #### Install
 ```shell
-python -m pip install -e "git+https://github.com/Kisspeace/accless-tg-scraper.git#egg=accless-tg-scraper" 
+python -m pip install "git+https://github.com/Kisspeace/accless-tg-scraper.git#egg=accless-tg-scraper" 
 ```
 #### Simple example
 ```python
