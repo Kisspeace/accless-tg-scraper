@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from accless_tg_scraper.parser import *
 import re
 from tg_tests import *
+from accless_tg_scraper.serialize.markdown import *
 
 def bs_from_file(filename: str) -> BeautifulSoup:
     fp = open(filename)
@@ -31,5 +32,6 @@ print(DELIM)
 
 page = bs_from_file('tg-posts-1.html')
 posts = parse_posts(page)
+dump_posts(posts, 'dump.md', 'a')
 print_posts(posts)
 print(DELIM)

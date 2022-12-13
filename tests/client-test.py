@@ -5,6 +5,7 @@ from accless_tg_scraper.client import *
 from accless_tg_scraper.classes import *
 import re
 from tg_tests import *
+from accless_tg_scraper.serialize.markdown import *
 
 tg = TgScraper()
 last_posts_page = None
@@ -17,7 +18,7 @@ async def get_n_print(channel: str, *args, **kwargs):
     last_posts_page = posts_page
     print_posts(posts_page)
 
-async def main():
+async def main():    
     await get_n_print(ponasenkov_tg)
     await get_n_print(ponasenkov_tg, before=last_posts_page.posts[0].id) 
     post = await tg.get_post(ponasenkov_tg, 7561)
