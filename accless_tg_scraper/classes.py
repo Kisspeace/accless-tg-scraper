@@ -4,7 +4,18 @@ class TgChannel():
     def __init__(self):
         self.url: str = ''
         self.avatar: str = ''
-        self.name: str = ''  
+        self.name: str = ''
+        self.display_name: str = ''
+
+class TgChannelInfo(TgChannel):
+    def __init__(self):
+        TgChannel.__init__(self)
+        self.subscribers: str = '' # like '73.2 k'
+        self.photos: str = ''
+        self.videos: str = ''
+        self.links: str = ''
+        self.description: str = ''
+        self.has_preview: bool = None # can be parsed from links like 'https://t.me/channel_name'
 
 class TgPostVoice():
     def __init__(self):
@@ -119,4 +130,4 @@ class TgPost():
 class TgPostsPage():
     def __init__(self):
         self.posts = [] # list of TgPost
-        
+        self.channel = TgChannelInfo() # channel info from right column on web page

@@ -70,3 +70,10 @@ class TgScraper():
         res = parse_posts_page(self._bs(text))
         return res
     
+    async def get_channel_info(self, channel: str) -> TgChannelInfo:
+        res = None
+        async with self._new_session() as session:
+            resp = await session.get(f'{self.base_url}/{channel}')
+            text = await resp.text()
+        res = parse_channel_info(self._bs(text))
+        return res

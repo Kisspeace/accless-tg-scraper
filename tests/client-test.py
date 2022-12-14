@@ -12,13 +12,20 @@ last_posts_page = None
 
 ponasenkov_tg = 'evgenii_ponasenkov'
 
+async def get_n_print_channel_info(channel: str, *args, **kwargs):
+    channel = await tg.get_channel_info(channel, *args, **kwargs)
+    print_channel_info(channel)
+    print(DELIM)
+
 async def get_n_print(channel: str, *args, **kwargs):
     global last_posts_page
     posts_page = await tg.get_posts_page(channel=channel, *args, **kwargs)
     last_posts_page = posts_page
+    print_channel_info(posts_page.channel)
     print_posts(posts_page)
 
-async def main():    
+async def main():   
+    await get_n_print_channel_info(ponasenkov_tg) 
     await get_n_print(ponasenkov_tg)
     await get_n_print(ponasenkov_tg, before=last_posts_page.posts[0].id) 
     post = await tg.get_post(ponasenkov_tg, 7561)

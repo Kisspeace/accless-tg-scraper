@@ -11,7 +11,7 @@ def dump_posts(posts: list[TgPost], file: any, fmode: str = 'a') -> None:
         file.write(string)
 
     for post in posts:
-        out(f'### [{post.author.name}]({post.author.url}): [post]({post.url}) at {post.timestamp} with {post.views} views.  \n')
+        out(f'### [{post.author.display_name}]({post.author.url}): [post]({post.url}) at {post.timestamp} with {post.views} views.  \n')
     
         if post.has_forward():
             out(f'**📰 forwarded from**: [{post.forwarded_from.name}]({post.forwarded_from.url})  \n')

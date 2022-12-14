@@ -7,6 +7,13 @@ import re
 
 DELIM = ''
 
+def print_channel_info(c: TgChannelInfo):
+    print(f'{c.display_name} - {c.name} - {c.subscribers} subs, {c.photos} photos, {c.videos} videos, {c.links} links. {c.url}')
+    print(f'avatar: {c.avatar}')
+    print(f'desc: {c.description}')
+    if c.has_preview:
+        print(f'channel has preview page.')
+
 def print_post(post: TgPost):
     print('(' + post.author.name + ') ' + post.author.url + ' on ' + post.url + ' at ' + str(post.timestamp) + ' with ' + post.views + ' views.')
     

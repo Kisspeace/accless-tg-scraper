@@ -35,6 +35,62 @@ def post_id_from_url(url: str, base_url: str = TELEGRAM_WEB_URL+'/') -> int:
 def parse_bg_image_url(style_str: str) -> str:
     return re.search("background-image:url\('(.*?)'\)", style_str).group(1)
 
+def parse_channel_info(page: BeautifulSoup) -> TgChannelInfo:
+    res = TgChannelInfo()
+    tgme_page = page.find(class_='tgme_page')
+    # Avatar
+    photo = tgme_page.find(class_='tgme_page_photo')
+    res.avatar = photo.find('img')['src']
+    # Telegram username
+    res.name = photo.find('a')['href']
+    eq_sign = res.name.rfind('=')
+    res.name = res.name[eq_sign+1:]
+    # Url
+    res.url = f'{TELEGRAM_WEB_URL}/{res.name}'
+    # Display name
+    res.display_name = tgme_page.find(class_='tgme_page_title').find('span').get_text()
+    # Subscribers count
+    extra = tgme_page.find(class_='tgme_page_extra')
+    if not extra is None:
+        extra = extra.get_text()
+        s_pos = extra.find(' s')
+        res.subscribers = extra[:s_pos]
+    # Description
+    desc = tgme_page.find(class_='tgme_page_description')
+    if not desc is None:
+        res.description = desc.get_text()
+    preview_btn = tgme_page.find(class_='tgme_page_context_link')
+    res.has_preview = (not preview_btn is None) 
+    return res
+
+def parse_right_column_channel_info(page: BeautifulSoup) -> TgChannelInfo:
+    res = TgChannelInfo()
+    res.has_preview = True
+    tgme_channel_info = page.find(class_="tgme_channel_info")
+    header = tgme_channel_info.find(class_='tgme_channel_info_header')
+    # Avatar
+    photo = header.find(class_='tgme_page_photo_image')
+    res.avatar = photo.find('img')['src']
+    title = header.find(class_='tgme_channel_info_header_title')
+    # Display name
+    res.display_name = header.find(class_='tgme_channel_info_header_title').find('span').get_text()
+    # Url
+    res.url = header.find(class_='tgme_channel_info_header_username').find('a')['href']
+    # Telegram username
+    res.name = channel_name_from_url(res.url)
+    # All counters (subscribers, photos, videos, links)
+    counters = tgme_channel_info.find(class_='tgme_channel_info_counters')
+    counters = counters.find_all(class_='tgme_channel_info_counter')
+    for counter in counters:
+        value = counter.find(class_='counter_value').get_text()
+        name = counter.find(class_='counter_type').get_text()
+        setattr(res, name, value)
+    # Description
+    desc = tgme_channel_info.find(class_='tgme_channel_info_description')
+    if not desc is None:
+        res.description = desc.get_text()    
+    return res
+    
 def parse_post_from_node(p: BeautifulSoup) -> TgPost:
     new_post = TgPost()
     tgme_widget_message = p.find(class_="tgme_widget_message", recursive=False)
@@ -47,13 +103,14 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
     tgme_widget_message_user_photo = tgme_widget_message_user.find(class_="tgme_widget_message_user_photo")
     new_post.author.url = str(tgme_widget_message_user.find("a")["href"])
     new_post.author.avatar = str(tgme_widget_message_user_photo.find("img")["src"])
+    new_post.author.name = channel_name_from_url(new_post.author.url)
     
-    # Author name
+    # Author display_name
     tgme_widget_message_owner_name = p.find(class_="tgme_widget_message_owner_name")
     if not (tgme_widget_message_owner_name is None):
         try:
             span = tgme_widget_message_owner_name.find('span')
-            new_post.author.name = span.get_text()
+            new_post.author.display_name = span.get_text()
         except:
             pass
     
@@ -265,4 +322,5 @@ def parse_posts(page: BeautifulSoup) -> []:
 def parse_posts_page(page: BeautifulSoup):
     res = TgPostsPage()
     res.posts = parse_posts(page)
+    res.channel = parse_right_column_channel_info(page)
     return res
