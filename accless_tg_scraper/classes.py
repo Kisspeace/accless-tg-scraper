@@ -63,7 +63,7 @@ class TgPoll():
     def __init__(self):
         self.type: str = '' # Like 'Anonymous poll'
         self.question: str = ''
-        self.options = []
+        self.options = [] # list of TgPollOption
         self.voters: str = '' # like '32.3k'
 
 class TgPost():
@@ -74,11 +74,11 @@ class TgPost():
         self.timestamp: datetime = datetime.now()
         self.author: TgChannel = TgChannel()
         self.views: str = '' # like '1.8k'
-        self.images = []
-        self.videos = []
+        self.images = [] # list of TgPostImage
+        self.videos = [] # list of TgPostVideo
         self.voice: TgPostVoice = None
         self.rounded_video: TgPostRoundedVideo = None
-        self.link_previews = []
+        self.link_previews = [] # list of TgPostLinkPreview
         self.has_not_supported: bool = False # Media is too big : VIEW IN TELEGRAM
         self.forwarded_from: TgChannel = None
         self.reply: TgPostReply = None
