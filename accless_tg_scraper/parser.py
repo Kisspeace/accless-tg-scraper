@@ -5,6 +5,10 @@ import re
 
 TELEGRAM_WEB_URL = 'https://t.me'
 
+def fix_line_breakers(element: BeautifulSoup): # https://stackoverflow.com/a/53515216
+    for elem in element.find_all(["a", "p", "div", "h3", "br"]): 
+        elem.replace_with(elem.text + "\n")
+
 def channel_name_from_url(url: str, base_url: str = TELEGRAM_WEB_URL+'/') -> str:
     base = url.find(base_url)
     if base != -1:
@@ -143,9 +147,12 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
     try:
         tgme_widget_message_text = p.find_all(class_="tgme_widget_message_text")
         if len(tgme_widget_message_text) > 1:
-            content = tgme_widget_message_text[1].get_text()
+            message_text_elem = tgme_widget_message_text[1]
         else:
-            content = tgme_widget_message_text[0].get_text()
+            message_text_elem = tgme_widget_message_text[0]
+        # content = message_text_elem.get_text(separator = '\n\n', strip = True)
+        fix_line_breakers(message_text_elem)
+        content = message_text_elem.get_text()
         new_post.content = content
     except:
         pass
