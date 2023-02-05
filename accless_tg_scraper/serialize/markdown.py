@@ -24,7 +24,10 @@ def dump_posts(posts: list[TgPost], file: any, fmode: str = 'a') -> None:
             out(f'{post.content}  \n')
             
         if post.has_sticker():
-            out(f'[🗿 Sticker]({post.sticker.image_url})  \n')
+            if not post.sticker.animated:
+                out(f'[🗿 Sticker]({post.sticker.image_url})  \n')
+            else:
+                out(f'[🗿 Sticker]({post.sticker.video_url}) [thumb]({post.sticker.image_url})  \n')
             
         if post.has_not_supported:
             out(f'~~⚠️ Post has not supported media !~~  \n')

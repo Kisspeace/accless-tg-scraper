@@ -62,7 +62,9 @@ class TgPostLinkPreview():
 
 class TgSticker():
     def __init__(self):
+        self.animated: bool = False
         self.image_url: str = ""
+        self.video_url: str = ""
 
 class TgPoll():
     

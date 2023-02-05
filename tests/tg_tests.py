@@ -28,7 +28,10 @@ def print_post(post: TgPost):
         print("Text: " +  post.content)
         
     if post.has_sticker():
-        print('🗿 Sticker: ' + post.sticker.image_url)
+        if not post.sticker.animated:
+            print('🗿 Sticker: ' + post.sticker.image_url)
+        else:
+            print('🗿 Animated sticker: ' + post.sticker.video_url + ' ' + post.sticker.image_url)
         
     if post.has_not_supported:
         print('⚠️ Post has not supported media !')
