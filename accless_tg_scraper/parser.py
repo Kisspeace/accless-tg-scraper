@@ -387,7 +387,8 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
         # static sticker
         tgme_widget_message_sticker = p.find(class_='tgme_widget_message_sticker')
         if not tgme_widget_message_sticker is None:
-            new_post.sticker.image_url = tgme_widget_message_sticker['data-webp']
+            if 'data-webp' in tgme_widget_message_sticker.attrs:
+                new_post.sticker.image_url = tgme_widget_message_sticker['data-webp']
 
         # Animated sticker
         tgme_widget_message_videosticker = p.find(class_='tgme_widget_message_videosticker')
