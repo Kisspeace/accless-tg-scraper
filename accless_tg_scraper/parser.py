@@ -389,6 +389,8 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
         if not tgme_widget_message_sticker is None:
             if 'data-webp' in tgme_widget_message_sticker.attrs:
                 new_post.sticker.image_url = tgme_widget_message_sticker['data-webp']
+            elif 'style' in tgme_widget_message_sticker.attrs:
+                new_post.sticker.image_url = parse_bg_image_url(tgme_widget_message_sticker['style'])
 
         # Animated sticker
         tgme_widget_message_videosticker = p.find(class_='tgme_widget_message_videosticker')
@@ -407,7 +409,6 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
                 img = js_videosticker_video.find('img')
                 if img is not None:
                     new_post.sticker.image_url = img['src']
-                # new_post.sticker.image_url = parse_bg_image_url(tgme_widget_message_videosticker['style'])
 
     # Detect unsupported media
     message_media_not_supported_wrap = p.find(class_="message_media_not_supported_wrap")
