@@ -67,69 +67,155 @@ class TgSticker():
         self.video_url: str = ""
 
 class TgPoll():
-    
+
     class TgPollOption():
         def __init__(self):
             self.value: str = ''
             self.percents: int = -1
-    
+
     def __init__(self):
         self.type: str = '' # Like 'Anonymous poll'
         self.question: str = ''
         self.options = [] # list of TgPollOption
         self.voters: str = '' # like '32.3k'
 
+class TgEmoji():
+    """Telegram emoji.
+    id: Emoji id.
+    custom: True if its a custom emoji.
+    animated: True if its animated emoji.
+    image_url: Original representation of emoji (also available for a custom).
+    custom_image_url: Custom representation of emoji.
+    data: Image svg+xml data.
+    tgs_url: link on .tgs file.
+
+    """
+    def __init__(self):
+        self.id: int = -1 # Emoji id.
+        self.custom: bool = False
+        self.animated: bool = False
+        self.image_url: str = ''
+        self.custom_image_url: str = ''
+        self.data: str = '' # Image data as text.
+        self.tgs_url = '' # link on .tgs file.
+
+class TgMessageEntity():
+    """Base class for all message entities.
+    See: https://core.telegram.org/api/entities
+
+    offset: Offset in string.
+    length: Characters count.
+    """
+    def __init__(self, offset: int, length: int):
+        self.offset = offset # Offset in string
+        self.length = length # Characters count
+
+    def get_end(self) -> int:
+        return self.offset + self.length
+
+    def same_place(self, entity) -> bool:
+        return (self.offset == entity.offset) and (self.length == entity.length)
+
+class TgMessageEntityUrl(TgMessageEntity):
+    """Message entity with text and url behind the text.
+    """
+    def __init__(self, offset: int = 0, length: int = 0, url: str = ''):
+        TgMessageEntity.__init__(self, offset, length)
+        # self.text: str = text
+        self.url: str = url
+
+class TgMessageEntityEmoji(TgMessageEntity):
+    """Message entity with telegram emoji.
+    """
+    def __init__(self, offset: int = 0, length: int = 0):
+        TgMessageEntity.__init__(self, offset, length)
+        self.emoji: TgEmoji = None
+
+class TgMessageEntityBold(TgMessageEntity):
+    """Message entity with bold text.
+    """
+    def __init__(self, offset: int = 0, length: int = 0):
+        TgMessageEntity.__init__(self, offset, length)
+
+class TgMessageEntityItalic(TgMessageEntity):
+    """Message entity with italic text.
+    """
+    def __init__(self, offset: int = 0, length: int = 0):
+        TgMessageEntity.__init__(self, offset, length)
+
+class TgMessageEntityStrikethrough(TgMessageEntity):
+    """Message entity with Strikethrough text.
+    """
+    def __init__(self, offset: int = 0, length: int = 0):
+        TgMessageEntity.__init__(self, offset, length)
+
+class TgMessageEntityUnderlined(TgMessageEntity):
+    """Message entity with underlined text.
+    """
+    def __init__(self, offset: int = 0, length: int = 0):
+        TgMessageEntity.__init__(self, offset, length)
+
+class TgMessageEntitySpoiler(TgMessageEntity):
+    """Message entity with hidden text.
+    """
+    def __init__(self, offset: int = 0, length: int = 0):
+        TgMessageEntity.__init__(self, offset, length)
+
 class TgPost():
     def __init__(self):
         self.url: str = ''
         self.id: int = -1
         self.content: str = ''
+        self.entities: list[TgMessageEntity] = []
         self.timestamp: datetime = datetime.now()
         self.author: TgChannel = TgChannel()
         self.views: str = '' # like '1.8k'
-        self.images = [] # list of TgPostImage
-        self.videos = [] # list of TgPostVideo
+        self.images: list[TgPostImage] = []
+        self.videos: list[TgPostVideo] = []
         self.voice: TgPostVoice = None
         self.rounded_video: TgPostRoundedVideo = None
-        self.link_previews = [] # list of TgPostLinkPreview
+        self.link_previews: list[TgPostLinkPreview] = []
         self.has_not_supported: bool = False # Media is too big : VIEW IN TELEGRAM
         self.forwarded_from: TgChannel = None
         self.reply: TgPostReply = None
         self.sticker: TgSticker = None
         self.poll: TgPoll = None
         self.invoice: TgPostInvoice = None
-        
+
     def has_forward(self) -> bool:
         return self.forwarded_from != None
-    
+
     def has_reply(self) -> bool:
         return self.reply != None
-    
+
     def has_sticker(self) -> bool:
         return self.sticker != None
-    
+
     def has_voice(self) -> bool:
         return self.voice != None
-    
+
     def has_rounded_video(self) -> bool:
         return self.rounded_video != None
-        
+
     def has_images(self) -> bool:
         return len(self.images) > 0
 
     def has_videos(self) -> bool:
         return len(self.videos) > 0
 
+    def has_entities(self) -> bool:
+        return len(self.entities) > 0
+
     def has_link_previews(self) -> bool:
         return len(self.link_previews) > 0
-    
+
     def has_poll(self) -> bool:
         return self.poll != None
-    
+
     def has_invoice(self) -> bool:
         return self.invoice != None
-    
+
 class TgPostsPage():
     def __init__(self):
-        self.posts = [] # list of TgPost
+        self.posts: list[TgPost] = []
         self.channel = TgChannelInfo() # channel info from right column on web page

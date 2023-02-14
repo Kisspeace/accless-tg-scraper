@@ -1,13 +1,10 @@
 from accless_tg_scraper.classes import *
 from bs4 import BeautifulSoup
 from datetime import datetime
+from typing import Tuple
 import re
 
 TELEGRAM_WEB_URL = 'https://t.me'
-
-def fix_line_breakers(element: BeautifulSoup): # https://stackoverflow.com/a/53515216
-    for elem in element.find_all(["a", "p", "div", "h3", "br"]): 
-        elem.replace_with(elem.text + "\n")
 
 def channel_name_from_url(url: str, base_url: str = TELEGRAM_WEB_URL+'/') -> str:
     base = url.find(base_url)
@@ -38,6 +35,144 @@ def post_id_from_url(url: str, base_url: str = TELEGRAM_WEB_URL+'/') -> int:
 
 def parse_bg_image_url(style_str: str) -> str:
     return re.search("background-image:url\('(.*?)'\)", style_str).group(1)
+
+def parse_emoji(element: BeautifulSoup) -> TgEmoji:
+    res = TgEmoji()
+    if 'emoji-id' in element.attrs:
+        res.id = element['emoji-id'] # Emoji id.
+
+    tg_emoji_wrap = element.find(class_='tg-emoji-wrap')
+    if tg_emoji_wrap is not None:
+
+        tg_emoji: BeautifulSoup = tg_emoji_wrap.find(class_='tg-emoji')
+        if tg_emoji is not None:
+            res.custom = True
+            res.custom_image_url = tg_emoji['data-webp']
+
+            if res.custom_image_url in ('', None):
+                # tgs file url.
+                source_tgs = tg_emoji.find(attrs={'type': 'application/x-tgsticker'})
+                res.tgs_url = source_tgs['srcset'] if source_tgs is not None else ''
+
+                # svg+xml data.
+                source_xml = tg_emoji.find(attrs={'type': 'image/svg+xml'})
+                res.data = source_xml['srcset'] if source_xml is not None else ''
+
+    # Original enoji image url.
+    emoji = element.find(class_='emoji')
+    if emoji is not None:
+        res.image_url = parse_bg_image_url(emoji['style'])
+
+    return res
+
+def parse_text_with_entities(element: BeautifulSoup) -> Tuple[str, list[TgMessageEntity]]:
+    """
+    Args:
+        element (BeautifulSoup): element for parse text from.
+
+    Returns:
+        Tuple: first item is a full text, second item is a list of entities.
+    """
+    FIX_ISSUES = True
+    entities = []
+    full_text: str = ''
+
+    def create_entity(subject: BeautifulSoup) -> TgMessageEntity:
+        if 'class' in subject.attrs:
+            l_classes = subject.attrs['class']
+        else:
+            l_classes = []
+
+        if (subject.name == 'tg-emoji') or ('emoji' in l_classes): # Telegram emoji.
+            res = TgMessageEntityEmoji()
+            res.emoji = parse_emoji(subject)
+        elif subject.name == 'b': # Bold text.
+            res = TgMessageEntityBold()
+        elif subject.name == 'i': # Italic text.
+            res = TgMessageEntityItalic()
+        elif subject.name == 'a': # Hyperlink or user mention.
+            res = TgMessageEntityUrl()
+            res.url = subject['href']
+        elif subject.name == 'u': # Underlined text.
+            res = TgMessageEntityUnderlined()
+        elif subject.name == 's': # Strikethrough text.
+            res = TgMessageEntityStrikethrough()
+        elif subject.name == 'tg-spoiler':
+            res = TgMessageEntitySpoiler()
+        # elif subject.name == '':
+        #     pass
+        return res
+
+    def parse_entities(subject: BeautifulSoup, work_on_br: bool = True):
+        DISALLOW_EMPTY_ENTITIES = True
+
+        nonlocal full_text
+        nonlocal entities
+
+        for el in subject:
+            if el.name is not None: # Is not just a text.
+                if (el.name == 'br'):
+                    # br tag must break line like on the web-page.
+                    if work_on_br:
+                        full_text += '\n'
+                else:
+                    # Create entity.
+                    allow_entity = True
+                    current_offset: int = len(full_text)
+                    entity: TgMessageEntity = create_entity(el)
+                    entity.offset = current_offset
+
+                    parse_entities(el, True)
+                    entity.length = len(full_text) - entity.offset
+
+                    # Fixing entities that starts or ends with whitespace.
+                    if FIX_ISSUES:
+                        s = full_text[entity.offset : entity.get_end()]
+                        diff = entity.length - len(s.lstrip())
+                        rdiff = entity.length - len(s.rstrip())
+                        entity.offset += diff
+                        entity.length -= (diff + rdiff)
+
+                    if DISALLOW_EMPTY_ENTITIES:
+                        if entity.length < 1:
+                            allow_entity = False
+
+                    if allow_entity:
+                        entities.append(entity)
+            else:
+                full_text += el.text
+
+    parse_entities(element)
+
+    if FIX_ISSUES:
+        stop = len(entities)
+        for i in range(0, stop):
+            ent = entities[i]
+
+            # Cleaning entities inside emojis.
+            if isinstance(ent, TgMessageEntityEmoji):
+                for n in range(0, stop):
+                    e = entities[n]
+                    if (e is ent) or (e is None):
+                        continue
+                    if ent.same_place(e):
+                        if isinstance(e, TgMessageEntityEmoji):
+                            if ent.emoji.custom:
+                                entities[n] = None
+                            else:
+                                entities[i] = None
+                                break
+                        elif isinstance(e, (TgMessageEntityBold, TgMessageEntityItalic)):
+                            entities[n] = None
+
+    # cleaning null objects.
+    tmp_entities = []
+    for ent in entities:
+        if ent is not None:
+            tmp_entities.append(ent)
+    entities = tmp_entities
+
+    return full_text, entities
 
 def parse_channel_info(page: BeautifulSoup) -> TgChannelInfo:
     res = TgChannelInfo()
@@ -151,9 +286,10 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
         else:
             message_text_elem = tgme_widget_message_text[0]
         # content = message_text_elem.get_text(separator = '\n\n', strip = True)
-        fix_line_breakers(message_text_elem)
-        content = message_text_elem.get_text()
-        new_post.content = content
+        # fix_line_breakers(message_text_elem)
+        # content, msg_entities = parse_text_with_entities(message_text_elem)
+        new_post.content, new_post.entities = parse_text_with_entities(message_text_elem)
+        # new_post.content = content
     except:
         pass
 
@@ -224,7 +360,7 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
             if not thumb is None:    
                 style = thumb['style']
                 new_prev.image_url = parse_bg_image_url(style)
-                
+
             new_prev.title = prev.find(class_="link_preview_title").get_text()
             new_prev.description = prev.find(class_="link_preview_description").get_text()
         except:
