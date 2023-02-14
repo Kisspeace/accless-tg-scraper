@@ -9,7 +9,7 @@ class TgEntityRuleSet():
             self.type = ent_type
 
         def convert(self, entity: TgMessageEntity, source: str):
-            sub_str = source[entity.offset : entity.get_end()]
+            sub_str = source[entity.offset : entity.offset + entity.length]
             return f'{self.prefix}{sub_str}{self.postfix}'
 
     def __init__(self):
@@ -20,7 +20,6 @@ class TgEntityRuleSet():
         self.url: self.EntityRule = None
         self.spoiler: self.EntityRule = None
         self.emoji: self.EntityRule = None
-        # self.rules = []
 
     def get_rules(self) -> list:
         return [
@@ -65,7 +64,6 @@ def dump_content(content: str, entities: list, rule_set: TgEntityRuleSet) -> str
         slice_b = res[offset + length : len(res)]
         res = slice_a + string + slice_b
 
-    # print('BEGIN MARK ______________________\n')
     l = len(entities)
     for i in range(0, l):
         ent = entities[i]
@@ -78,17 +76,12 @@ def dump_content(content: str, entities: list, rule_set: TgEntityRuleSet) -> str
             next_ent = entities[n]
 
             # info about next entity.
-            start_after = (next_ent.offset >= ent.get_end())
-            start_inside = (not start_after) and (next_ent.offset >= ent.offset)
-
-            # debug.
-            # r = rule_set.rule_by_type(type(next_ent))
-            # print(f'[{n}] {r.type.__name__} s_after:{start_after}, s_inside:{start_inside}')
+            start_after = next_ent.starts_after(ent)
+            start_inside = next_ent.starts_inside(ent)
 
             if start_after:
                 next_ent.offset += (len(converted) - ent.length)
             elif start_inside:
                 next_ent.offset += len(rule.prefix)
 
-    # print('MARK END -----------------------\n')
     return res

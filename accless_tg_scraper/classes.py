@@ -110,12 +110,23 @@ class TgMessageEntity():
         self.offset = offset # Offset in string
         self.length = length # Characters count
 
-    def get_end(self) -> int:
-        return self.offset + self.length
-
     def same_place(self, entity) -> bool:
         return (self.offset == entity.offset) and (self.length == entity.length)
 
+    def starts_after(self, entity) -> bool:
+        """
+        Returns:
+            bool: True if current entity start position is bigger than end position of given entity.
+        """
+        return (self.offset >= (entity.offset + entity.length))
+
+    def starts_inside(self, entity) -> bool:
+        """
+        Returns:
+            bool: True if current entity starts inside given entity.
+        """
+        return (not self.starts_after(entity)) and (self.offset >= entity.offset)
+    
 class TgMessageEntityUrl(TgMessageEntity):
     """Message entity with text and url behind the text.
     """

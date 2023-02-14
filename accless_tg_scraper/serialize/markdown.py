@@ -13,7 +13,7 @@ class TgEntityRuleSetMarkdown(TgEntityRuleSet):
             self.url_postfix: str = ')'
 
         def convert(self, entity: TgMessageEntity, source: str):
-            sub_str = source[entity.offset : entity.get_end()]
+            sub_str = source[entity.offset : entity.offset + entity.length]
             return f'{self.prefix}{sub_str}{self.postfix}{self.url_prefix}{entity.url}{self.url_postfix}'
 
     def __init__(self):

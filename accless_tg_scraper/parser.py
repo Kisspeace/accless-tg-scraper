@@ -127,7 +127,7 @@ def parse_text_with_entities(element: BeautifulSoup) -> Tuple[str, list[TgMessag
 
                     # Fixing entities that starts or ends with whitespace.
                     if FIX_ISSUES:
-                        s = full_text[entity.offset : entity.get_end()]
+                        s = full_text[entity.offset : entity.offset + entity.length]
                         diff = entity.length - len(s.lstrip())
                         rdiff = entity.length - len(s.rstrip())
                         entity.offset += diff
