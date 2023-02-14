@@ -332,7 +332,10 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
     videos = p.find_all(class_="tgme_widget_message_video_player")
     for vid in videos:
         new_video = TgPostVideo()
-        style = vid.find(class_="tgme_widget_message_video_thumb")['style']
+        style = ''
+        thumb = vid.find(class_="tgme_widget_message_video_thumb")
+        if thumb is not None and 'style' in thumb.attrs:
+            style = thumb['style']
 
         try:
             new_video.image_url = parse_bg_image_url(style)

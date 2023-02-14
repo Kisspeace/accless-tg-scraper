@@ -75,7 +75,8 @@ def dump_posts(posts: list[TgPost], file: any, fmode: str = 'a') -> None:
 
         if post.has_videos():
             for vid in post.videos:
-                out(f'[🎥 video]({vid.url})  \n')
+                if vid.url:
+                    out(f'[🎥 video]({vid.url})  \n')
 
         if post.has_link_previews():
             for link in post.link_previews:
