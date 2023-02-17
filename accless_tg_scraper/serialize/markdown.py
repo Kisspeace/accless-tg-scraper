@@ -70,6 +70,12 @@ def dump_posts(posts: list[TgPost], file: any, fmode: str = 'a') -> None:
         if post.has_rounded_video():
             out(f'[📹 {post.rounded_video.duration}]({post.rounded_video.url})  \n ![thumbnail]({post.rounded_video.thumbnail})  \n')
 
+        if post.has_documents():
+            for doc in post.documents:
+                emoji = '🎵' if doc.type == TG_DOCUMENT_AUDIO else '💾'
+                extra = f' - {doc.extra}' if doc.extra != '' else ''
+                out(f'[{emoji} file]({doc.url}): **{doc.title}**{extra}  \n')
+
         if post.has_images():
             for img in post.images:
                 out(f'![🌉 image]({img.url})  \n')

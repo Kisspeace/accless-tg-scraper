@@ -10,6 +10,10 @@ TG_SERVICE_MSG_LIVE_STREAM_FINISHED = 4
 TG_SERVICE_MSG_LIVE_STREAM_SHEDULED = 5
 TG_SERVICE_MSG_PINNED = 6
 
+# Document types:
+TG_DOCUMENT_UNKNOWN = -1
+TG_DOCUMENT_AUDIO = 0
+
 class TgChannel():
     def __init__(self):
         self.url: str = ''
@@ -184,8 +188,15 @@ class TgMessageEntitySpoiler(TgMessageEntity):
 
 class TgServiceMessage():
     def __init__(self):
-        self.type = TG_SERVICE_MSG_UNKNOWN
+        self.type: int = TG_SERVICE_MSG_UNKNOWN
         self.extra: str = '' # (url, text) depends on type
+
+class TgDocument():
+    def __init__(self):
+        self.type: int = TG_DOCUMENT_UNKNOWN
+        self.url: str = ''
+        self.title: str = ''
+        self.extra: str = ''
 
 class TgPost():
     def __init__(self):
@@ -199,6 +210,7 @@ class TgPost():
         self.views: str = '' # like '1.8k'
         self.images: list[TgPostImage] = []
         self.videos: list[TgPostVideo] = []
+        self.documents: list[TgDocument] = [] # list of attached files
         self.voice: TgPostVoice = None
         self.rounded_video: TgPostRoundedVideo = None
         self.link_previews: list[TgPostLinkPreview] = []
@@ -209,7 +221,7 @@ class TgPost():
         self.poll: TgPoll = None
         self.invoice: TgPostInvoice = None
         self.service_msg: TgServiceMessage = None
-
+        
     def has_service_msg(self) -> bool:
         return self.service_msg != None
 
@@ -239,6 +251,9 @@ class TgPost():
 
     def has_link_previews(self) -> bool:
         return len(self.link_previews) > 0
+
+    def has_documents(self) -> bool:
+        return len(self.documents) > 0
 
     def has_poll(self) -> bool:
         return self.poll != None

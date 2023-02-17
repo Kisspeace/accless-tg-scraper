@@ -395,7 +395,7 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
             thumb = prev.find(class_="link_preview_image")
             if thumb is None:
                 thumb = prev.find(class_="link_preview_right_image")
-            if not thumb is None:    
+            if not thumb is None:
                 style = thumb['style']
                 new_prev.image_url = parse_bg_image_url(style)
 
@@ -408,6 +408,26 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
         if link_preview_site_name is not None:
             new_prev.site_name = link_preview_site_name.get_text() 
         new_post.link_previews.append(new_prev)
+
+    # Documents
+    docs = p.find_all(class_='tgme_widget_message_document_wrap', recursive=True)
+    for doc in docs:
+        new_doc = TgDocument()
+        tmp_obj = doc.find(class_='audio')
+        if tmp_obj is not None:
+            new_doc.type = TG_DOCUMENT_AUDIO
+        else:
+            new_doc.type = TG_DOCUMENT_UNKNOWN
+
+        new_doc.url = doc['href'] if 'href' in doc.attrs else ''
+
+        title = doc.find(class_='tgme_widget_message_document_title')
+        new_doc.title = title.text if title is not None else ''
+
+        extra = doc.find(class_='tgme_widget_message_document_extra')
+        new_doc.extra = extra.text if extra is not None else ''
+
+        new_post.documents.append(new_doc)
 
     # Views
     tgme_widget_message_views = p.find(class_="tgme_widget_message_views")
