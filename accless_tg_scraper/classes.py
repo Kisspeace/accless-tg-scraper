@@ -1,5 +1,15 @@
 from datetime import datetime
 
+# Consts
+TG_SERVICE_MSG_UNKNOWN = -1
+TG_SERVICE_MSG_CHANNEL_CREATED = 0
+TG_SERVICE_MSG_CHANNEL_RENAMED = 1
+TG_SERVICE_MSG_CHANNEL_PHOTO_REMOVED = 2
+TG_SERVICE_MSG_CHANNEL_PHOTO_UPDATED = 3
+TG_SERVICE_MSG_LIVE_STREAM_FINISHED = 4
+TG_SERVICE_MSG_LIVE_STREAM_SHEDULED = 5
+TG_SERVICE_MSG_PINNED = 6
+
 class TgChannel():
     def __init__(self):
         self.url: str = ''
@@ -172,10 +182,16 @@ class TgMessageEntitySpoiler(TgMessageEntity):
     def __init__(self, offset: int = 0, length: int = 0):
         TgMessageEntity.__init__(self, offset, length)
 
+class TgServiceMessage():
+    def __init__(self):
+        self.type = TG_SERVICE_MSG_UNKNOWN
+        self.extra: str = '' # (url, text) depends on type
+
 class TgPost():
     def __init__(self):
         self.url: str = ''
         self.id: int = -1
+        # self.type: int = TG_MESSAGE
         self.content: str = ''
         self.entities: list[TgMessageEntity] = []
         self.timestamp: datetime = datetime.now()
@@ -192,6 +208,10 @@ class TgPost():
         self.sticker: TgSticker = None
         self.poll: TgPoll = None
         self.invoice: TgPostInvoice = None
+        self.service_msg: TgServiceMessage = None
+
+    def has_service_msg(self) -> bool:
+        return self.service_msg != None
 
     def has_forward(self) -> bool:
         return self.forwarded_from != None

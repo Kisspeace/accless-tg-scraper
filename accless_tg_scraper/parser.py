@@ -78,6 +78,7 @@ def parse_text_with_entities(element: BeautifulSoup) -> Tuple[str, list[TgMessag
     full_text: str = ''
 
     def create_entity(subject: BeautifulSoup) -> TgMessageEntity:
+        res = None
         if 'class' in subject.attrs:
             l_classes = subject.attrs['class']
         else:
@@ -86,7 +87,7 @@ def parse_text_with_entities(element: BeautifulSoup) -> Tuple[str, list[TgMessag
         if (subject.name == 'tg-emoji') or ('emoji' in l_classes): # Telegram emoji.
             res = TgMessageEntityEmoji()
             res.emoji = parse_emoji(subject)
-        elif subject.name == 'b': # Bold text.
+        elif (subject.name == 'b') or ('tgme_widget_service_strong_text' in l_classes): # Bold text.
             res = TgMessageEntityBold()
         elif subject.name == 'i': # Italic text.
             res = TgMessageEntityItalic()
@@ -120,25 +121,28 @@ def parse_text_with_entities(element: BeautifulSoup) -> Tuple[str, list[TgMessag
                     allow_entity = True
                     current_offset: int = len(full_text)
                     entity: TgMessageEntity = create_entity(el)
-                    entity.offset = current_offset
+                    if entity is not None:
+                        entity.offset = current_offset
 
-                    parse_entities(el, True)
-                    entity.length = len(full_text) - entity.offset
+                        parse_entities(el, True)
+                        entity.length = len(full_text) - entity.offset
 
-                    # Fixing entities that starts or ends with whitespace.
-                    if FIX_ISSUES:
-                        s = full_text[entity.offset : entity.offset + entity.length]
-                        diff = entity.length - len(s.lstrip())
-                        rdiff = entity.length - len(s.rstrip())
-                        entity.offset += diff
-                        entity.length -= (diff + rdiff)
+                        # Fixing entities that starts or ends with whitespace.
+                        if FIX_ISSUES:
+                            s = full_text[entity.offset : entity.offset + entity.length]
+                            diff = entity.length - len(s.lstrip())
+                            rdiff = entity.length - len(s.rstrip())
+                            entity.offset += diff
+                            entity.length -= (diff + rdiff)
 
-                    if DISALLOW_EMPTY_ENTITIES:
-                        if entity.length < 1:
-                            allow_entity = False
+                        if DISALLOW_EMPTY_ENTITIES:
+                            if entity.length < 1:
+                                allow_entity = False
 
-                    if allow_entity:
-                        entities.append(entity)
+                        if allow_entity:
+                            entities.append(entity)
+                    else:
+                        parse_entities(el, True)
             else:
                 full_text += el.text
 
@@ -253,6 +257,52 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
         except:
             pass
 
+    # Text content
+    tgme_widget_message_text = p.find_all(class_="tgme_widget_message_text")
+    if len(tgme_widget_message_text) > 0:
+        if len(tgme_widget_message_text) > 1:
+            message_text_elem = tgme_widget_message_text[1]
+        else:
+            message_text_elem = tgme_widget_message_text[0]
+        new_post.content, new_post.entities = parse_text_with_entities(message_text_elem)
+
+    # Service message
+    service_message = p.find(class_='service_message')
+    if service_message is not None:
+        service_msg = TgServiceMessage()
+        if new_post.content.startswith('Live stream scheduled'):
+            service_msg.type = TG_SERVICE_MSG_LIVE_STREAM_SHEDULED
+        elif new_post.content.startswith('Live stream finished'):
+            service_msg.type = TG_SERVICE_MSG_LIVE_STREAM_FINISHED
+        elif new_post.content.startswith(f'{new_post.author.display_name} pinned'):
+            service_msg.type = TG_SERVICE_MSG_PINNED
+        elif new_post.content.startswith('Channel photo updated'):
+            service_msg.type = TG_SERVICE_MSG_CHANNEL_PHOTO_UPDATED
+            service_photo = p.find(class_='tgme_widget_message_service_photo')
+            if service_photo is not None:
+                img = service_photo.find('img')
+                service_msg.extra = img['src'] if img is not None else ''
+        elif new_post.content.startswith('Channel photo removed'):
+            service_msg.type = TG_SERVICE_MSG_CHANNEL_PHOTO_REMOVED
+        elif new_post.content.startswith('Channel name was changed to'):
+            service_msg.type = TG_SERVICE_MSG_CHANNEL_RENAMED
+        elif new_post.content.startswith('Channel created'):
+            service_msg.type = TG_SERVICE_MSG_CHANNEL_CREATED
+        else:
+            service_msg.type = TG_SERVICE_MSG_UNKNOWN
+        
+        if service_msg.type in (TG_SERVICE_MSG_CHANNEL_RENAMED, TG_SERVICE_MSG_PINNED):
+            strong_text = service_message.find(class_='tgme_widget_service_strong_text')
+            if strong_text is not None:
+                service_msg.extra = strong_text.text
+        elif service_msg.type in (TG_SERVICE_MSG_LIVE_STREAM_FINISHED, TG_SERVICE_MSG_LIVE_STREAM_SHEDULED):
+            try:
+                service_msg.extra = re.search("\((.*?)\)", new_post.content).group(1)
+            except:
+                pass
+        
+        new_post.service_msg = service_msg
+
     # Reply info
     tgme_widget_message_reply = p.find(class_="tgme_widget_message_reply")
     if not tgme_widget_message_reply is None:
@@ -275,21 +325,6 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
             new_post.forwarded_from = TgChannel()
             new_post.forwarded_from.name = tgme_widget_message_forwarded_from_name.find('span').get_text()
             new_post.forwarded_from.url = tgme_widget_message_forwarded_from_name['href']
-    except:
-        pass
-
-    # Text content
-    try:
-        tgme_widget_message_text = p.find_all(class_="tgme_widget_message_text")
-        if len(tgme_widget_message_text) > 1:
-            message_text_elem = tgme_widget_message_text[1]
-        else:
-            message_text_elem = tgme_widget_message_text[0]
-        # content = message_text_elem.get_text(separator = '\n\n', strip = True)
-        # fix_line_breakers(message_text_elem)
-        # content, msg_entities = parse_text_with_entities(message_text_elem)
-        new_post.content, new_post.entities = parse_text_with_entities(message_text_elem)
-        # new_post.content = content
     except:
         pass
 
@@ -369,7 +404,9 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
         except:
             pass
 
-        new_prev.site_name = prev.find(class_="link_preview_site_name").get_text() 
+        link_preview_site_name = prev.find(class_='link_preview_site_name')
+        if link_preview_site_name is not None:
+            new_prev.site_name = link_preview_site_name.get_text() 
         new_post.link_previews.append(new_prev)
 
     # Views
@@ -479,7 +516,7 @@ def parse_widget_post(page: BeautifulSoup) -> TgPost:
     p = page.find(class_="widget_frame_base")
     return parse_post_from_node(p)
 
-def parse_posts(page: BeautifulSoup) -> []:
+def parse_posts(page: BeautifulSoup) -> []:    
     history = page.find(class_="tgme_channel_history")
     p_posts = history.find_all(class_="tgme_widget_message_wrap", recursive=False)
     posts = []
