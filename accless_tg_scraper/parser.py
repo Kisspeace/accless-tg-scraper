@@ -244,7 +244,12 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
     # Author
     tgme_widget_message_user = p.find(class_="tgme_widget_message_user")
     tgme_widget_message_user_photo = tgme_widget_message_user.find(class_="tgme_widget_message_user_photo")
-    new_post.author.url = str(tgme_widget_message_user.find("a")["href"])
+    try:
+        # Sometimes this url does not exist in the web page.
+        new_post.author.url = str(tgme_widget_message_user.find("a")["href"])
+    except:
+        pass
+    
     new_post.author.avatar = str(tgme_widget_message_user_photo.find("img")["src"])
     new_post.author.name = channel_name_from_url(new_post.author.url)
 
@@ -290,7 +295,7 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
             service_msg.type = TG_SERVICE_MSG_CHANNEL_CREATED
         else:
             service_msg.type = TG_SERVICE_MSG_UNKNOWN
-        
+
         if service_msg.type in (TG_SERVICE_MSG_CHANNEL_RENAMED, TG_SERVICE_MSG_PINNED):
             strong_text = service_message.find(class_='tgme_widget_service_strong_text')
             if strong_text is not None:
@@ -300,7 +305,7 @@ def parse_post_from_node(p: BeautifulSoup) -> TgPost:
                 service_msg.extra = re.search("\((.*?)\)", new_post.content).group(1)
             except:
                 pass
-        
+
         new_post.service_msg = service_msg
 
     # Reply info
@@ -536,7 +541,7 @@ def parse_widget_post(page: BeautifulSoup) -> TgPost:
     p = page.find(class_="widget_frame_base")
     return parse_post_from_node(p)
 
-def parse_posts(page: BeautifulSoup) -> []:    
+def parse_posts(page: BeautifulSoup) -> []:
     history = page.find(class_="tgme_channel_history")
     p_posts = history.find_all(class_="tgme_widget_message_wrap", recursive=False)
     posts = []
