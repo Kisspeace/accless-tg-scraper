@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setuptolls
 
 setup(
     name = 'accless_tg_scraper',
